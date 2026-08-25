@@ -69,23 +69,33 @@ at least one of `phoneNumber` (11 digits) or `facebookProfileUrl`.
 Push to `main` and Vercel builds automatically. Set `MONGODB_URI` in
 **Project Settings → Environment Variables** before the first deploy.
 
-Also confirm in **Project Settings → General**:
+Also confirm in **Project Settings → General** that **Root Directory** is the repository
+root (not `client`).
 
-- **Root Directory** is the repository root (not `client`).
-- **Framework Preset** is `Express` or `Other`. It must not be `Create React App`, or
-  Vercel will deploy the client as a static site and the API will 404.
+The **Framework Preset** should be `Other`. `vercel.json` sets `"framework": null` to
+enforce this, but leaving the dashboard on `Express` is worth correcting so the two
+agree.
 
 Everything else is defined in `vercel.json`.
 
 ### How the build fits together
 
 `npm run build` compiles the React client into `public/` at the repository root, using
-Create React App's `BUILD_PATH`. Vercel then serves `public/` from its CDN and bundles
-`server.js` into a single function.
+Create React App's `BUILD_PATH`. `vercel.json` points `outputDirectory` at `public`, so
+Vercel serves it from the CDN.
 
-`vercel.json` rewrites every path except `/api/*` to `/index.html` so React Router
-handles client-side routes. Because Vercel applies rewrites only after checking the
-filesystem, real files such as `/static/js/main.*.js` are still served directly.
+`api/[...path].js` re-exports the Express app, which makes Vercel turn every `/api/*`
+request into a single function. Matching on the filesystem rather than a rewrite means
+Express receives the original URL and its router works unchanged.
+
+`vercel.json` rewrites every other path to `/index.html` so React Router handles
+client-side routes. Because Vercel applies rewrites only after checking the filesystem,
+real files such as `/static/js/main.*.js` are still served directly.
+
+`vercel.json` also sets `"framework": null`. This matters: under the `Express` framework
+preset Vercel generates its own routing from the app, which supersedes the `rewrites`
+and `headers` here and skips the client build entirely, leaving the site with a working
+API but no frontend.
 
 ### Architecture notes
 
@@ -94,8 +104,9 @@ These differ from a traditional long-running Node host:
 - **`server.js` exports the app** rather than always listening. It only calls
   `app.listen()` when run directly, which is what makes it work both as a Vercel
   Function and as a normal server locally.
-- **`express.static()` is ignored on Vercel**, so static files must live in `public/`
-  and are served by the CDN. The Express static handler is skipped when `VERCEL` is set.
+- **Static files are served by the CDN from `public/`**, never by Express. The Express
+  static handler is skipped when `VERCEL` is set, and only exists so that
+  `npm start` can serve the built client locally.
 - **The MongoDB connection is cached** on the global object in `lib/db.js`. Serverless
   invocations reuse warm containers, and without this cache each one would open its own
   pool and exhaust the Atlas connection limit.
