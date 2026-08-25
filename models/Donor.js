@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
 const donorSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -53,7 +55,7 @@ const donorSchema = new mongoose.Schema({
     bloodGroup: {
         type: String,
         required: [true, 'Blood group is required'],
-        enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+        enum: BLOOD_GROUPS
     },
     facebookProfileUrl: {
         type: String,
@@ -75,4 +77,8 @@ const donorSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model('Donor', donorSchema);
+donorSchema.index({ bloodGroup: 1, createdAt: -1 });
+
+const Donor = mongoose.model('Donor', donorSchema);
+
+module.exports = { Donor, BLOOD_GROUPS };

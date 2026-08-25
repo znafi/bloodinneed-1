@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -16,23 +16,18 @@ import {
   Grid,
   ThemeProvider,
   createTheme,
-  IconButton,
   Chip,
   Stack,
-  Avatar,
-  Divider,
   Alert,
   Snackbar
 } from '@mui/material';
 import {
-  Favorite,
   Add,
   Phone,
   LocationOn,
   CalendarToday,
   Facebook,
   LocalHospital,
-  ArrowBack,
   BloodtypeOutlined,
 } from '@mui/icons-material';
 import api from '../config/api';
@@ -98,29 +93,28 @@ function DonorList() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  useEffect(() => {
-    fetchDonors();
-  }, [selectedBloodGroup]);
-
-  const fetchDonors = async () => {
+  const fetchDonors = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.get('/', {
         params: selectedBloodGroup === 'All' ? undefined : { bloodGroup: selectedBloodGroup }
       });
-      
+
       setDonors(response.data);
     } catch (err) {
-      console.error('Error fetching donors:', err);
       setError('Failed to load donors');
       setSnackbarMessage('Failed to load donors');
       setSnackbarOpen(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedBloodGroup]);
+
+  useEffect(() => {
+    fetchDonors();
+  }, [fetchDonors]);
 
   const handleRegisterClick = () => {
     navigate('/register');

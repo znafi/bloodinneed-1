@@ -9,7 +9,6 @@ import {
   Box,
   MenuItem,
   Grid,
-  Alert,
   AppBar,
   Toolbar,
   Stack,
@@ -59,15 +58,9 @@ function DonorForm() {
     facebookProfileUrl: ''
   });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [termsDialog, setTermsDialog] = useState({
-    open: false,
-    action: null,
-    title: '',
-  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -114,7 +107,6 @@ function DonorForm() {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
-    setSuccess('');
 
     try {
       // Client-side validation
@@ -134,13 +126,9 @@ function DonorForm() {
         throw new Error('Phone number must be exactly 11 digits');
       }
 
-      console.log('Form data passed validation:', formData);
-      
-      // Make POST request to root endpoint since baseURL already includes /api/donors
-      const response = await api.post('/', formData);
-      console.log('Server response:', response.data);
-      
-      setSuccess('Registration successful! Thank you for registering as a donor.');
+      // baseURL already includes /api/donors
+      await api.post('/', formData);
+
       setSnackbarMessage('Registration successful! Redirecting to donor list...');
       setSnackbarOpen(true);
       
@@ -159,10 +147,8 @@ function DonorForm() {
       navigate('/');
 
     } catch (err) {
-      console.error('Registration error:', err);
-      
       let errorMessage = '';
-      
+
       if (err.response) {
         // Server responded with error
         errorMessage = err.response.data?.error || 'Server error. Please try again.';
@@ -184,53 +170,6 @@ function DonorForm() {
 
   const handleFindDonors = () => {
     navigate('/');
-  };
-
-  const handleTermsClose = () => {
-    setTermsDialog({ ...termsDialog, open: false });
-  };
-
-  const handleTermsAccept = async () => {
-    const { action } = termsDialog;
-    setTermsDialog({ ...termsDialog, open: false });
-
-    if (action === 'submit') {
-      try {
-        const response = await api.post('/api/donors', formData);
-        console.log('Donor registered:', response.data);
-        setSnackbarMessage('Registration successful! Redirecting to donor list...');
-        setSnackbarOpen(true);
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
-      } catch (error) {
-        console.error('Registration error:', error);
-        let errorMessage = 'Registration failed. ';
-        
-        // Handle different types of errors
-        if (error.response) {
-          // Server responded with an error
-          if (error.response.data?.error) {
-            errorMessage += error.response.data.error;
-          } else if (error.response.status === 400) {
-            errorMessage += 'Invalid form data. Please check your inputs.';
-          } else {
-            errorMessage += 'Server error. Please try again.';
-          }
-        } else if (error.request) {
-          // Request was made but no response
-          errorMessage += 'Cannot connect to server. Please check your connection.';
-        } else {
-          // Something else happened
-          errorMessage += 'An unexpected error occurred. Please try again.';
-        }
-        
-        setSnackbarMessage(errorMessage);
-        setSnackbarOpen(true);
-      }
-    } else if (action === 'find') {
-      navigate('/');
-    }
   };
 
   const handleSnackbarClose = () => {
